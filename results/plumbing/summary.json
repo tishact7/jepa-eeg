@@ -1,0 +1,83 @@
+{
+  "args": {
+    "seed": 42,
+    "epochs": 2,
+    "batch_size": 32,
+    "out_dir": "results/plumbing"
+  },
+  "env": {
+    "python": "3.13.15",
+    "torch": "2.11.0+cu130",
+    "numpy": "2.1.3",
+    "mne": "1.13.2",
+    "moabb": "1.7.2",
+    "cuda": true,
+    "gpu": "Tesla T4"
+  },
+  "checks": {
+    "1_shapes": {
+      "pass": true,
+      "trials": [
+        576,
+        22,
+        500
+      ],
+      "patches": [
+        576,
+        10,
+        22,
+        50
+      ],
+      "context": [
+        32,
+        6,
+        22,
+        50
+      ],
+      "target": [
+        32,
+        2,
+        22,
+        50
+      ],
+      "predictor_out": [
+        32,
+        2,
+        128
+      ]
+    },
+    "2_loss": {
+      "pass": true,
+      "strict_monotonic_first20": false,
+      "decreasing_transitions": 17,
+      "of": 19,
+      "ma5_first": 1.8239368915557863,
+      "ma5_last": 1.015902316570282,
+      "ma5_decreased": true,
+      "final_target_std": 0.9322470393445756,
+      "collapse": false
+    },
+    "3_checkpoint": {
+      "pass": true,
+      "reloaded_epoch": 1,
+      "outputs_match": true,
+      "weights_match": true,
+      "epoch2_ckpt_exists": true
+    },
+    "4_probe": {
+      "pass": true,
+      "train_n": 460,
+      "eval_n": 116,
+      "jepa": {
+        "train_acc": 0.4782608449459076,
+        "eval_acc": 0.25
+      },
+      "random_encoder": {
+        "train_acc": 0.5456521511077881,
+        "eval_acc": 0.2586206793785095
+      },
+      "note": "dummy within-subject split, not a result"
+    }
+  },
+  "all_pass": true
+}
