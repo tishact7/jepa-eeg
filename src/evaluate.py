@@ -67,3 +67,37 @@ def tsne_plot(feats, labels, save_path, title="", seed=42, perplexity=30):
     plt.savefig(save_path, dpi=150)
     plt.close()
     return save_path
+
+
+
+def fit_probe(train_feats, train_labels, epochs, lr, seed, batch_size=64, device="cpu"):
+    seed_everything(seed)
+    gen = make_generator(seed)
+    finite = bool(torch.isfinite(train_feats).all())
+    mu = train_feats.mean(0, keepdim=True)
+    sd = train_feats.std(0, keepdim=True) + 1e-8
+    xtr = ((train_feats - mu) / sd).to(device)
+    ytr = torch.as_tensor(train_labels).to(device)
+    probe = nn.Linear(xtr.shape[1], 4).to(device)
+    opt = torch.optim.Adam(probe.parameters(), lr=lr)
+    n = xtr.shape[0]
+    for _ in range(epochs):
+        order = torch.randperm(n, generator=gen).to(device)
+        for i in range(0, n, batch_size):
+            b = order[i:i + batch_size]
+            loss = F.cross_entropy(probe(xtr[b]), ytr[b])
+            opt.zero_grad()
+            loss.backward()
+            opt.step()
+    state = {k: v.detach().cpu().clone() for k, v in probe.state_dict().items()}
+    finite = finite and all(bool(torch.isfinite(v).all()) for v in state.values())
+    return {"state": state, "mu": mu.cpu(), "sd": sd.cpu(), "finite": finite}
+
+
+def probe_counts(probe, feats, labels):
+    if not bool(torch.isfinite(feats).all()):
+        raise ValueError("non-finite features")
+    x = (feats - probe["mu"]) / probe["sd"]
+    logits = x @ probe["state"]["weight"].T + probe["state"]["bias"]
+    y = torch.as_tensor(labels)
+    return int((logits.argmax(1) == y).sum().item()), int(len(y))

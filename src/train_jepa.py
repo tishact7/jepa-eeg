@@ -46,7 +46,8 @@ def jepa_step(enc, pred, tgt, patches, optimizer, generator, momentum=0.996):
 
 
 def train_jepa(patches_np, epochs, batch_size, seed, out_dir, lr=5e-4,
-               weight_decay=0.05, momentum=0.996, device="cuda", log_first=20):
+               weight_decay=0.05, momentum=0.996, device="cuda", log_first=20,
+               save_epochs=None):
     """Unlabeled JEPA pretraining. patches_np: (n,10,22,50) float32."""
     seed_everything(seed)
     mask_gen, shuffle_gen = make_generator(seed), make_generator(seed + 1)
@@ -76,8 +77,9 @@ def train_jepa(patches_np, epochs, batch_size, seed, out_dir, lr=5e-4,
         history.append({"epoch": epoch, "loss": ep_loss, "target_std": ep_cstd})
         logger.log(kind="epoch", epoch=epoch, loss=ep_loss, target_std=ep_cstd)
         print(f"epoch {epoch} | mean loss {ep_loss:.5f} | target std {ep_cstd:.4f}")
-        save_checkpoint(f"{out_dir}/ckpt_epoch{epoch}.pt", epoch,
-                        {"encoder": enc, "predictor": pred, "target": tgt}, opt, ep_loss)
+        if save_epochs is None or epoch in save_epochs:
+            save_checkpoint(f"{out_dir}/ckpt_epoch{epoch}.pt", epoch,
+                            {"encoder": enc, "predictor": pred, "target": tgt}, opt, ep_loss)
 
     return {"encoder": enc, "predictor": pred, "target": tgt, "optimizer": opt,
             "step_losses": step_losses, "history": history}

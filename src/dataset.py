@@ -60,3 +60,30 @@ def load_splits(train_subjects=TRAIN_SUBJECTS, val_subjects=VAL_SUBJECTS,
         X, y = load_group(subs)
         out[name] = (patchify(apply_norm(X, mean, std)), y)
     return out, (mean, std)
+
+
+
+def _load_group(subjects):
+    data = [load_subject(s) for s in subjects]
+    return (np.concatenate([d[0] for d in data]),
+            np.concatenate([d[1] for d in data]))
+
+
+def load_train_val():
+    ids = list(TRAIN_SUBJECTS) + list(VAL_SUBJECTS)
+    assert len(ids) == len(set(ids)), "subject leakage: overlap between splits"
+    assert not set(ids) & set(TEST_SUBJECTS), "test subject requested by training path"
+    Xtr, ytr = _load_group(TRAIN_SUBJECTS)
+    mean, std = fit_norm_stats(Xtr)
+    Xval, yval = _load_group(VAL_SUBJECTS)
+    data = {"Xtr": patchify(apply_norm(Xtr, mean, std)), "ytr": ytr,
+            "Xval": patchify(apply_norm(Xval, mean, std)), "yval": yval}
+    return data, (mean, std)
+
+
+def load_test(mean, std, selection_records):
+    seeds = sorted(r.get("seed") for r in selection_records)
+    if seeds != [7, 42, 123] or any(r.get("status") != "SELECTED" for r in selection_records):
+        raise PermissionError("S9 requires completed SELECTED records for seeds 42, 7 and 123")
+    X, y = _load_group(TEST_SUBJECTS)
+    return patchify(apply_norm(X, mean, std)), y
